@@ -1,0 +1,11 @@
+{
+	"version": 1,
+	"include": ["/*"],
+	"exclude": [
+		"/landing.css",
+		"/landing.js",
+		"/robots.txt",
+		"/web.ico",
+		"/docs/*"
+	]
+}
