@@ -19,6 +19,12 @@
 
 你也可以部署自己的实例，Cloudflare Pages 会免费提供一个 `你的项目名.pages.dev` 域名，**无需自行购买域名**。
 
+<p align="center">
+  <img src="pictures/1.png" alt="首页" width="700" />
+  <br/>
+  <em>首页 / 登录页</em>
+</p>
+
 ## 功能特性
 
 ### 核心亮点：三端聚合 + 智能负载均衡
@@ -43,6 +49,20 @@
 - **用量追踪** — 密钥级、账号级、模型级每日用量统计
 - **WebSocket 流式对话** — 实时 SSE 推送
 - **神经元估算** — 精准估算每次调用的消耗
+
+### 管理后台预览
+
+<p align="center">
+  <img src="pictures/2.png" alt="管理后台 - 数据看板" width="700" />
+  <br/>
+  <em>管理后台 - 数据看板</em>
+</p>
+
+<p align="center">
+  <img src="pictures/3.png" alt="管理后台 - 管理功能" width="700" />
+  <br/>
+  <em>管理后台 - 账号 / 密钥 / 用量管理</em>
+</p>
 
 ## 快速开始
 
@@ -289,7 +309,31 @@ curl https://api.markbl.de5.net/v1/embeddings \
 
 ## License
 
-[MIT](LICENSE)
+```
+MIT License
+
+Copyright (c) 2025 jidanbings
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+```
+
+查看完整 [LICENSE](LICENSE) 文件。
 
 ---
 
