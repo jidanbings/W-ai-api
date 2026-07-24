@@ -89,7 +89,51 @@ Cloudflare 会自动部署，完成后提供一个 `你的项目名.pages.dev` �
 
 ### 配置环境变量和绑定
 
-部署完成后，进入项目 **Settings** → **Functions** → 添加以下配置：
+> **💡 不熟悉 Cloudflare 的用户请看这里：**
+> 以下步骤教你如何创建 KV 和 D1 并绑定到 Pages 项目。
+
+#### 第 1 步：创建 KV 命名空间
+
+1. 登录 [Cloudflare Dashboard](https://dash.cloudflare.com)
+2. 进入 **Workers & Pages** → **KV**
+3. 点击 **Create a namespace**（创建命名空间）
+4. **命名空间名称随便取**，例如 `apikv`
+5. 点击 **Create** 完成创建
+
+#### 第 2 步：创建 D1 数据库
+
+1. 进入 **Workers & Pages** → **D1**
+2. 点击 **Create database**（创建数据库）
+3. **数据库名称随便取**，例如 `apid1`
+4. 点击 **Create** 完成创建
+
+#### 第 3 步：绑定到 Pages 项目
+
+1. 进入 **Workers & Pages** → **Pages**，点击你部署的项目
+2. 进入项目 **Settings**（设置）→ **Functions**
+3. 在 **KV namespace bindings**（KV 命名空间绑定）区域：
+   - 点击 **Add binding**
+   - **Variable name** 输入 `KV`（**必须是大写**）
+   - **KV namespace** 选择刚才创建的命名空间（例如 `apikv`）
+   - 点击 **Save**
+4. 在 **D1 database bindings**（D1 数据库绑定）区域：
+   - 点击 **Add binding**
+   - **Variable name** 输入 `DB`（**必须是大写**）
+   - **D1 database** 选择刚才创建的数据库（例如 `apid1`）
+   - 点击 **Save**
+5. 在 **Environment variables**（环境变量）区域：
+   - 点击 **Add variable**
+   - **Variable name** 输入 `ADMIN_PASSWORD`
+   - **Value** 输入你设置的管理员密码
+   - 点击 **Save**
+
+<p align="center">
+  <img src="pictures/4.png" alt="Cloudflare Pages 设置页面" width="700" />
+  <br/>
+  <em>Cloudflare Pages 设置页面 — 在这里配置环境变量和绑定 KV / D1</em>
+</p>
+
+配置完成后，页面显示如下：
 
 | 绑定类型 | 变量名 | 必填 | 说明 |
 |----------|--------|------|------|
@@ -97,6 +141,8 @@ Cloudflare 会自动部署，完成后提供一个 `你的项目名.pages.dev` �
 | KV 命名空间 | `KV` | **是** | Session 和 2FA 临时数据（需 TTL 自动过期） |
 | D1 数据库 | `DB` | **是** | 配置、密钥用量、限流、缓存等持久化数据 |
 | AI Binding | `AI` | 否 | 内建推理后端（可选，作为负载均衡兜底） |
+
+> ⚠️ **重要提醒**：KV 和 D1 的命名空间名称可以随意取（如 `apikv`、`apid1`），但**绑定的变量名必须是 `KV` 和 `DB`（全大写）**，否则项目无法正常工作。
 
 ### 初始化 D1 数据库表
 
