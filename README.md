@@ -146,6 +146,14 @@ Cloudflare 会自动部署，完成后提供一个 `你的项目名.pages.dev` �
 
 ### 初始化 D1 数据库表
 
+> ⚠️ **这一步非常重要！** 如果没有初始化 D1 数据库表，项目将无法正常登录和使用。
+
+<p align="center">
+  <img src="pictures/5.png" alt="D1 数据库初始化" width="700" />
+  <br/>
+  <em>在 D1 控制台执行 SQL 创建数据库表</em>
+</p>
+
 在 Cloudflare D1 控制台或通过 `wrangler` 执行以下 SQL 创建表：
 
 ```sql
