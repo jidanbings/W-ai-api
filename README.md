@@ -46,21 +46,30 @@
 
 ## 快速开始
 
-这是一个 **Cloudflare Pages 项目**，部署非常简单：
+这是一个 **Cloudflare Pages 项目**，有两种部署方式：
 
-1. 将本项目 fork 到你的 GitHub 账号
-2. 登录 [Cloudflare Dashboard](https://dash.cloudflare.com)
-3. 进入 **Workers & Pages** → **Pages** → **Create a Pages project**
-4. 选择 **Git 导入** → 连接你的 GitHub 仓库
-5. 在构建设置中：**框架预设选 None**，**构建命令留空**，**输出目录留空**，直接保存
-6. Cloudflare 会自动部署，部署完成后会提供一个 `你的项目名.pages.dev` 的免费域名
-7. 进入项目 **Settings** → **Functions** → 配置下方的环境变量和绑定
+### 方式一：直接上传（最简单，推荐）
+
+无需 Git，无需命令行，只需 3 步：
+
+1. [下载本项目压缩包](https://github.com/jidanbings/W-ai-api/archive/refs/heads/main.zip) 并解压
+2. 登录 [Cloudflare Dashboard](https://dash.cloudflare.com) → **Workers & Pages** → **Pages** → **Create a Pages project**
+3. 选择 **Direct Upload**（直接上传），将解压后的 **`pages-project` 文件夹** 拖拽上传
+
+Cloudflare 会自动部署，完成后提供一个 `你的项目名.pages.dev` 的免费域名。
+
+### 方式二：Git 导入（适合持续集成）
+
+1. Fork 本仓库到你的 GitHub 账号
+2. 在 Cloudflare Pages 选择 **Git 导入**，连接你的仓库
+3. 构建设置：**框架预设选 None**，**构建命令留空**，**输出目录留空**，直接保存
+4. Cloudflare 自动部署，后续每次推送代码自动更新
 
 > **无需自行购买域名**，Cloudflare 提供的 `.pages.dev` 域名即可使用。也支持绑定自定义域名。
 
 ### 配置环境变量和绑定
 
-部署后，在 Cloudflare Pages 项目设置的 **Functions** 中添加以下配置：
+部署完成后，进入项目 **Settings** → **Functions** → 添加以下配置：
 
 | 绑定类型 | 变量名 | 必填 | 说明 |
 |----------|--------|------|------|
