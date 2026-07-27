@@ -50,6 +50,19 @@ Cloudflare 账号用量查询（GraphQL API）添加 `AbortController` 30 秒超
 
 新增 `login_audit_logs` 数据库表和 `logLoginAudit` 函数，每次登录尝试（成功/失败）均记录 IP、状态、User-Agent 和时间戳，便于安全审计。
 
+> **部署注意**：需要在 D1 数据库中执行以下 SQL 创建新表：
+> ```sql
+> CREATE TABLE IF NOT EXISTS login_audit_logs (
+>     id INTEGER PRIMARY KEY AUTOINCREMENT,
+>     ip TEXT NOT NULL,
+>     status TEXT NOT NULL,
+>     user_agent TEXT DEFAULT '',
+>     created_at INTEGER NOT NULL
+> );
+> CREATE INDEX IF NOT EXISTS idx_login_audit_logs_created_at ON login_audit_logs(created_at);
+> CREATE INDEX IF NOT EXISTS idx_login_audit_logs_ip ON login_audit_logs(ip);
+> ```
+
 ### 技术优化：流式响应 CPU 优化
 
 `wrapStreamWithUsageTracking` 中仅解析包含 `usage` 字段的 SSE 数据块，对 ~99% 的文本 delta 块直接透传（跳过 JSON.parse/stringify），1000 块响应从 ~25ms 降至 ~1.5ms。
@@ -72,4 +85,4 @@ README.md 更新安全章节、项目结构、初始化 SQL 表定义（新增 `
 
 ### 文档：清理演示域名和 API Key
 
-移除所有演示域名引用，替换为 `你的项目名.pages.dev` 通用占位符；移除 `free-plan.html` 中暴露的 5 个真实 API Key，替换为占位符。
+移除所有演示域名引用，替换为 `你的项目名.pages.dev` 通用占位符。
