@@ -4234,379 +4234,55 @@ function handleAdminPage(request, env, ctx) {
 
 
 // 3. KV 未绑定时的报错页面
+// 共享错误页面渲染器，消除三个错误页面间重复的 HTML/CSS 模板
+function renderErrorPage(title, icon, contentHtml) {
+	return `<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>${title} - W-ai-api</title><style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:#07080a;color:#f8fafc;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+.card{background:rgba(15,18,30,.55);border:1px solid rgba(59,130,246,.2);border-radius:20px;padding:40px;max-width:500px;width:100%;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,.5)}
+.icon{font-size:48px;margin-bottom:16px}
+h1{font-size:24px;color:#3b82f6;margin-bottom:16px;font-weight:600}
+p{color:#94a3b8;font-size:15px;line-height:1.6;margin-bottom:24px}
+.hint{background:rgba(0,0,0,.25);padding:20px;border-radius:12px;font-family:monospace;font-size:13px;color:#93c5fd;text-align:left;margin-bottom:26px;border:1px solid rgba(255,255,255,.05);line-height:1.8}
+</style></head><body><div class="card"><div class="icon">${icon}</div><h1>${title}</h1>${contentHtml}</div></body></html>`;
+}
+
 function handleKVError(request) {
-	const html = `<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-	<meta charset="UTF-8">
-	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>KV 绑定异常 - W-ai-api</title>
-	<link rel="preconnect" href="https://fonts.googleapis.com">
-	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-	<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&family=Outfit:wght@500;600;700&display=swap" rel="stylesheet">
-	<style>
-		:root {
-			--bg-color: #07080a;
-			--card-bg: rgba(15, 18, 30, 0.55);
-			--border-color: rgba(59, 130, 246, 0.2);
-			--text-main: #f8fafc;
-			--text-muted: #94a3b8;
-			--primary-gradient: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%);
-			--accent-color: #3b82f6;
-			--glass-blur: 20px;
-			--card-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
-		}
-
-		* {
-			box-sizing: border-box;
-			margin: 0;
-			padding: 0;
-		}
-
-		body {
-			font-family: 'Inter', sans-serif;
-			background-color: var(--bg-color);
-			color: var(--text-main);
-			min-height: 100vh;
-			display: flex;
-			align-items: center;
-			justify-content: center;
-			padding: 20px;
-			position: relative;
-			overflow: hidden;
-		}
-
-		.error-card {
-			background-color: var(--card-bg);
-			border: 1px solid var(--border-color);
-			border-radius: 20px;
-			padding: 40px;
-			max-width: 500px;
-			width: 100%;
-			text-align: center;
-			box-shadow: var(--card-shadow);
-			z-index: 10;
-		}
-
-		h1 {
-			font-family: 'Outfit', sans-serif;
-			font-size: 24px;
-			color: #3b82f6;
-			margin-bottom: 16px;
-			font-weight: 600;
-		}
-
-		p {
-			color: var(--text-muted);
-			font-size: 15px;
-			line-height: 1.6;
-			margin-bottom: 24px;
-		}
-
-		.code-block {
-			background-color: rgba(0, 0, 0, 0.25);
-			padding: 20px;
-			border-radius: 12px;
-			font-family: monospace;
-			font-size: 13px;
-			color: #93c5fd;
-			text-align: left;
-			margin-bottom: 26px;
-			border: 1px solid rgba(255, 255, 255, 0.05);
-			line-height: 1.8;
-		}
-
-		.btn {
-			display: inline-block;
-			background: var(--primary-gradient);
-			color: white;
-			text-decoration: none;
-			padding: 12px 28px;
-			border-radius: 10px;
-			font-weight: 600;
-			font-size: 14px;
-			transition: all 0.3s;
-			box-shadow: 0 4px 14px rgba(59, 130, 246, 0.2);
-		}
-
-		.btn:hover {
-			transform: translateY(-2px);
-			box-shadow: 0 6px 20px rgba(59, 130, 246, 0.35);
-			opacity: 0.95;
-		}
-	</style>
-</head>
-<body>
-	<div class="error-card">
-		<div style="font-size: 48px; margin-bottom: 16px;">⚠️</div>
-		<h1>KV 命名空间未绑定</h1>
-		<p>系统检测到您未在 Cloudflare 平台中为该项目绑定 KV 命名空间，或者绑定的变量名称不为 <strong>KV</strong>。这会导致数据无法保存，系统无法正常运行。</p>
-		
-		<div class="code-block">
-			<strong>解决方案：</strong><br>
-			1. 进入您的 Cloudflare Workers/Pages 仪表盘。<br>
-			2. 导航至 Settings -> Functions (或 Settings -> Variables) -> KV namespace bindings。<br>
-			3. 添加绑定，将【变量名称 (Variable name)】设置为: <strong>KV</strong><br>
-			4. 保存并重新部署项目即可。
-		</div>
-		
-		<a href="https://developers.cloudflare.com/kv/learning/kv-bindings/" target="_blank" class="btn">查看官方绑定教程</a>
-	</div>
-</body>
-</html>`;
-
 	const url = new URL(request.url);
 	if (url.pathname.startsWith('/v1/') || url.pathname.startsWith('/api/')) {
 		return new Response(JSON.stringify({
-			error: {
-				message: "Cloudflare KV namespace binding 'KV' is missing. Please bind a KV namespace to 'KV' in your Worker/Pages settings.",
-				type: "server_error"
-			}
+			error: { message: "Cloudflare KV namespace binding 'KV' is missing. Please bind a KV namespace to 'KV' in your Worker/Pages settings.", type: "server_error" }
 		}), { status: 500, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' } });
 	}
-
-	const resp = new Response(html, {
-		headers: { 'Content-Type': 'text/html; charset=utf-8' }
-	});
+	const resp = new Response(renderErrorPage('KV 绑定异常', '⚠️',
+		`<p>系统检测到您未在 Cloudflare 平台中为该项目绑定 KV 命名空间，或者绑定的变量名称不为 <strong>KV</strong>。这会导致数据无法保存，系统无法正常运行。</p>
+		<div class="hint"><strong>解决方案：</strong><br>1. 进入您的 Cloudflare Workers/Pages 仪表盘。<br>2. 导航至 Settings → Functions (或 Settings → Variables) → KV namespace bindings。<br>3. 添加绑定，将【变量名称】设置为: <strong>KV</strong><br>4. 保存并重新部署项目即可。</div>
+		<a href="https://developers.cloudflare.com/kv/learning/kv-bindings/" target="_blank" style="display:inline-block;background:linear-gradient(135deg,#1e3a8a,#2563eb);color:#fff;text-decoration:none;padding:12px 28px;border-radius:10px;font-weight:600;font-size:14px">查看官方绑定教程</a>`
+	), { headers: { 'Content-Type': 'text/html; charset=utf-8' } });
 	addSecurityHeaders(resp);
 	return resp;
 }
 
-// 3. D1 Database Error UI Page
 function handleDBError(request) {
-	const html = `<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-	<meta charset="UTF-8">
-	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>D1 绑定异常 - W-ai-api</title>
-	<link rel="preconnect" href="https://fonts.googleapis.com">
-	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-	<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&family=Outfit:wght@500;600;700&display=swap" rel="stylesheet">
-	<style>
-		:root {
-			--bg-color: #07080a;
-			--card-bg: rgba(15, 18, 30, 0.55);
-			--border-color: rgba(59, 130, 246, 0.2);
-			--text-main: #f8fafc;
-			--text-muted: #94a3b8;
-			--primary-gradient: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%);
-			--accent-color: #3b82f6;
-			--glass-blur: 20px;
-			--card-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
-		}
-
-		* {
-			box-sizing: border-box;
-			margin: 0;
-			padding: 0;
-		}
-
-		body {
-			font-family: 'Inter', sans-serif;
-			background-color: var(--bg-color);
-			color: var(--text-main);
-			min-height: 100vh;
-			display: flex;
-			align-items: center;
-			justify-content: center;
-			padding: 20px;
-			position: relative;
-			overflow: hidden;
-		}
-
-		.error-card {
-			background-color: var(--card-bg);
-			border: 1px solid var(--border-color);
-			border-radius: 20px;
-			padding: 40px;
-			max-width: 500px;
-			width: 100%;
-			text-align: center;
-		}
-
-		.error-icon {
-			width: 56px;
-			height: 56px;
-			border-radius: 50%;
-			background: linear-gradient(135deg, rgba(239, 68, 68, 0.2), rgba(220, 38, 38, 0.3));
-			display: flex;
-			align-items: center;
-			justify-content: center;
-			margin: 0 auto 24px;
-			font-size: 28px;
-		}
-
-		.error-title {
-			font-family: 'Outfit', sans-serif;
-			font-size: 22px;
-			font-weight: 700;
-			margin-bottom: 12px;
-		}
-
-		.error-desc {
-			color: var(--text-muted);
-			font-size: 14px;
-			line-height: 1.6;
-			margin-bottom: 24px;
-		}
-
-		.error-hint {
-			background: rgba(59, 130, 246, 0.1);
-			border: 1px solid rgba(59, 130, 246, 0.2);
-			border-radius: 12px;
-			padding: 16px;
-			font-size: 13px;
-			text-align: left;
-			line-height: 1.7;
-		}
-
-		.error-hint code {
-			background: rgba(255, 255, 255, 0.1);
-			padding: 2px 6px;
-			border-radius: 4px;
-			font-size: 12px;
-		}
-	</style>
-</head>
-<body>
-	<div class="error-card">
-		<div class="error-icon">🔴</div>
-		<div class="error-title">D1 数据库未绑定</div>
-		<div class="error-desc">
-			系统检测到 D1 数据库未绑定到当前 Worker。<br>
-			请先创建并绑定 D1 数据库。
-		</div>
-		<div class="error-hint">
-			<strong>部署步骤：</strong><br>
-			1. 在 Cloudflare 控制台创建 D1 数据库<br>
-			2. 在 Pages 项目设置中绑定 D1（变量名：<code>DB</code>）<br>
-			3. 首次部署后，系统会自动创建所需的表结构
-		</div>
-	</div>
-</body>
-</html>`;
-	const resp2 = new Response(html, {
-		headers: { 'Content-Type': 'text/html; charset=utf-8' }
-	});
-	addSecurityHeaders(resp2);
-	return resp2;
+	const resp = new Response(renderErrorPage('D1 绑定异常', '🔴',
+		`<p>系统检测到 D1 数据库未绑定到当前 Worker。<br>请先创建并绑定 D1 数据库。</p>
+		<div class="hint"><strong>部署步骤：</strong><br>1. 在 Cloudflare 控制台创建 D1 数据库<br>2. 在 Pages 项目设置中绑定 D1（变量名：<code>DB</code>）<br>3. 首次部署后，系统会自动创建所需的表结构</div>`
+	), { headers: { 'Content-Type': 'text/html; charset=utf-8' } });
+	addSecurityHeaders(resp);
+	return resp;
 }
 
-// 4. Password Error UI Page
 function handlePasswordError(request) {
-	const html = `<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-	<meta charset="UTF-8">
-	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>管理员密码未配置 - W-ai-api</title>
-	<link rel="preconnect" href="https://fonts.googleapis.com">
-	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-	<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&family=Outfit:wght@500;600;700&display=swap" rel="stylesheet">
-	<style>
-		:root {
-			--bg-color: #07080a;
-			--card-bg: rgba(15, 18, 30, 0.55);
-			--border-color: rgba(59, 130, 246, 0.2);
-			--text-main: #f8fafc;
-			--text-muted: #94a3b8;
-			--primary-gradient: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%);
-			--accent-color: #3b82f6;
-			--glass-blur: 20px;
-			--card-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
-		}
-
-		* {
-			box-sizing: border-box;
-			margin: 0;
-			padding: 0;
-		}
-
-		body {
-			font-family: 'Inter', sans-serif;
-			background-color: var(--bg-color);
-			color: var(--text-main);
-			min-height: 100vh;
-			display: flex;
-			align-items: center;
-			justify-content: center;
-			padding: 20px;
-			position: relative;
-			overflow: hidden;
-		}
-
-		.error-card {
-			background-color: var(--card-bg);
-			border: 1px solid var(--border-color);
-			border-radius: 20px;
-			padding: 40px;
-			max-width: 500px;
-			width: 100%;
-			text-align: center;
-			box-shadow: var(--card-shadow);
-			z-index: 10;
-		}
-
-		h1 {
-			font-family: 'Outfit', sans-serif;
-			font-size: 24px;
-			color: #3b82f6;
-			margin-bottom: 16px;
-			font-weight: 600;
-		}
-
-		p {
-			color: var(--text-muted);
-			font-size: 15px;
-			line-height: 1.6;
-			margin-bottom: 24px;
-		}
-
-		.code-block {
-			background-color: rgba(0, 0, 0, 0.25);
-			padding: 20px;
-			border-radius: 12px;
-			font-family: monospace;
-			font-size: 13px;
-			color: #93c5fd;
-			text-align: left;
-			margin-bottom: 26px;
-			border: 1px solid rgba(255, 255, 255, 0.05);
-			line-height: 1.8;
-		}
-	</style>
-</head>
-<body>
-	<div class="error-card">
-		<div style="font-size: 48px; margin-bottom: 16px;">🔑</div>
-		<h1>管理员密码未配置</h1>
-		<p>系统检测到您未在 Cloudflare 平台中为该项目配置 <strong>ADMIN_PASSWORD</strong> 环境变量。为了您的接口 and 管理后台安全，系统已拦截所有访问，直到密码配置完成。</p>
-		
-		<div class="code-block">
-			<strong>解决方案：</strong><br>
-			1. 进入您的 Cloudflare Workers/Pages 仪表盘。<br>
-			2. 导航至 Settings -> Variables (或 Settings -> Environment Variables)。<br>
-			3. 点击【Add variable】，将【Variable name】设置为: <strong>ADMIN_PASSWORD</strong><br>
-			4. 输入您的管理员登录密码作为其值，保存并部署即可。
-		</div>
-	</div>
-</body>
-</html>`;
-
 	const url = new URL(request.url);
 	if (url.pathname.startsWith('/v1/') || url.pathname.startsWith('/api/')) {
 		return new Response(JSON.stringify({
-			error: {
-				message: "ADMIN_PASSWORD environment variable is missing. Please add the ADMIN_PASSWORD variable to your Worker/Pages settings.",
-				type: "server_error"
-			}
+			error: { message: "ADMIN_PASSWORD environment variable is missing. Please add the ADMIN_PASSWORD variable to your Worker/Pages settings.", type: "server_error" }
 		}), { status: 500, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-api-key' } });
 	}
-
-	const resp3 = new Response(html, {
-		headers: { 'Content-Type': 'text/html; charset=utf-8' }
-	});
-	addSecurityHeaders(resp3);
-	return resp3;
+	const resp = new Response(renderErrorPage('管理员密码未配置', '🔑',
+		`<p>系统检测到您未在 Cloudflare 平台中为该项目配置 <strong>ADMIN_PASSWORD</strong> 环境变量。为了您的接口和管理后台安全，系统已拦截所有访问，直到密码配置完成。</p>
+		<div class="hint"><strong>解决方案：</strong><br>1. 进入您的 Cloudflare Workers/Pages 仪表盘。<br>2. 导航至 Settings → Variables (或 Settings → Environment Variables)。<br>3. 点击【Add variable】，将【Variable name】设置为: <strong>ADMIN_PASSWORD</strong><br>4. 输入您的管理员登录密码作为其值，保存并部署即可。</div>`
+	), { headers: { 'Content-Type': 'text/html; charset=utf-8' } });
+	addSecurityHeaders(resp);
+	return resp;
 }
