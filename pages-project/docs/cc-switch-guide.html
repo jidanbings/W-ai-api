@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CC Switch 配置指南</title>
+<style>
+  /* ===== CSS Variables (Light & Dark) ===== */
+  :root {
+    --bg: #f6f8fc;
+    --card-bg: #ffffff;
+    --card-border: #e2e8f0;
+    --text-primary: #0b1a33;
+    --text-secondary: #2d3f5e;
+    --text-muted: #64748b;
+    --accent: #2563eb;
+    --accent-hover: #1d4ed8;
+    --accent-light: #dbeafe;
+    --code-bg: #f1f5f9;
+    --code-border: #e2e8f0;
+    --table-header-bg: #f1f5f9;
+    --note-bg: #fef9e7;
+    --note-border: #f5d76e;
+    --note-text: #7d6608;
+    --shadow: 0 4px 24px rgba(0,0,0,0.04);
+    --radius: 12px;
+    --transition: 0.2s ease;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0f172a;
+      --card-bg: #1e293b;
+      --card-border: #334155;
+      --text-primary: #e2e8f0;
+      --text-secondary: #cbd5e1;
+      --text-muted: #94a3b8;
+      --accent: #60a5fa;
+      --accent-hover: #93bbfc;
+      --accent-light: #1e293b;
+      --code-bg: #0f172a;
+      --code-border: #334155;
+      --table-header-bg: #2d3f5e;
+      --note-bg: #2d2a1e;
+      --note-border: #b8952e;
+      --note-text: #f0d78c;
+      --shadow: 0 4px 24px rgba(0,0,0,0.3);
+    }
+  }
+
+  /* ===== Reset & Base ===== */
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans SC', sans-serif;
+    background: var(--bg);
+    color: var(--text-primary);
+    line-height: 1.8;
+    padding: 40px 20px;
+    transition: background 0.3s, color 0.3s;
+  }
+  .container {
+    max-width: 860px;
+    margin: 0 auto;
+  }
+
+  /* ===== Typography ===== */
+  h1 {
+    font-size: 32px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    text-align: center;
+    background: linear-gradient(135deg, var(--accent), #7c3aed);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 8px;
+  }
+  .subtitle {
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 16px;
+    margin-bottom: 48px;
+    border-bottom: 1px solid var(--card-border);
+    padding-bottom: 24px;
+  }
+  h2 {
+    font-size: 24px;
+    font-weight: 600;
+    margin: 48px 0 20px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid var(--accent-light);
+    color: var(--text-primary);
+  }
+  h3 {
+    font-size: 18px;
+    font-weight: 600;
+    margin: 32px 0 14px;
+    color: var(--text-secondary);
+  }
+  p { margin-bottom: 14px; }
+  a {
+    color: var(--accent);
+    text-decoration: none;
+    font-weight: 500;
+    transition: color var(--transition);
+  }
+  a:hover { color: var(--accent-hover); text-decoration: underline; }
+  strong { color: var(--text-primary); font-weight: 600; }
+
+  /* ===== Cards ===== */
+  .card {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: var(--radius);
+    padding: 24px 28px;
+    margin: 20px 0;
+    box-shadow: var(--shadow);
+    transition: border-color var(--transition), box-shadow var(--transition);
+  }
+  .card:hover {
+    border-color: var(--accent);
+    box-shadow: 0 6px 30px rgba(37, 99, 235, 0.08);
+  }
+  .card-title {
+    font-weight: 600;
+    font-size: 17px;
+    margin-bottom: 14px;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .card-title::before {
+    content: "⚙️";
+    font-size: 18px;
+  }
+
+  /* ===== Code & Copy ===== */
+  .code-wrapper {
+    position: relative;
+    margin: 16px 0 20px;
+    border-radius: var(--radius);
+    border: 1px solid var(--code-border);
+    background: var(--code-bg);
+    overflow: hidden;
+  }
+  .code-wrapper pre {
+    background: transparent;
+    padding: 16px 20px;
+    margin: 0;
+    overflow-x: auto;
+    border: none;
+  }
+  .code-wrapper pre code {
+    background: transparent;
+    border: none;
+    padding: 0;
+    color: var(--text-primary);
+    font-size: 13.5px;
+    display: block;
+    white-space: pre-wrap;
+    word-break: break-all;
+    font-family: 'JetBrains Mono', 'Cascadia Code', 'Fira Code', monospace;
+  }
+
+  .copy-btn {
+    position: absolute;
+    top: 8px;
+    right: 10px;
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 6px;
+    padding: 2px 14px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-family: inherit;
+    letter-spacing: 0.3px;
+    line-height: 1.8;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+  }
+  .copy-btn:hover {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #ffffff;
+  }
+  .copy-btn.copied {
+    background: #22c55e;
+    border-color: #22c55e;
+    color: #ffffff;
+  }
+
+  /* ---- 优化后的复制按钮（更显眼） ---- */
+  .copy-link-btn {
+    display: inline-block;
+    background: var(--code-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 4px;
+    padding: 0 12px;
+    margin-left: 8px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    color: var(--text-secondary);
+    transition: all 0.2s ease;
+    font-family: inherit;
+    line-height: 1.8;
+    letter-spacing: 0.2px;
+  }
+  .copy-link-btn:hover {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #ffffff;
+    text-decoration: none;
+  }
+  .copy-link-btn.copied {
+    background: #22c55e;
+    border-color: #22c55e;
+    color: #ffffff;
+  }
+
+  /* ===== Tables ===== */
+  .table-wrapper {
+    overflow-x: auto;
+    margin: 16px 0 20px;
+    border-radius: var(--radius);
+    border: 1px solid var(--card-border);
+    background: var(--card-bg);
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+    min-width: 420px;
+  }
+  th, td {
+    padding: 12px 16px;
+    text-align: left;
+    border-bottom: 1px solid var(--card-border);
+    vertical-align: middle;
+  }
+  th {
+    background: var(--table-header-bg);
+    font-weight: 600;
+    color: var(--text-secondary);
+    font-size: 13px;
+  }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: var(--accent-light); }
+
+  /* ===== Lists ===== */
+  ul, ol { margin: 10px 0 18px 24px; }
+  li { margin-bottom: 8px; }
+
+  /* ===== Note ===== */
+  .note {
+    background: var(--note-bg);
+    border: 1px solid var(--note-border);
+    padding: 14px 20px;
+    border-radius: var(--radius);
+    font-size: 14px;
+    color: var(--note-text);
+    margin: 16px 0;
+  }
+  .note code { background: rgba(0,0,0,0.06); border-color: var(--note-border); }
+
+  /* ===== FAQ Accordion ===== */
+  .faq-list { margin: 20px 0; }
+  .faq-item {
+    border: 1px solid var(--card-border);
+    border-radius: var(--radius);
+    margin-bottom: 10px;
+    background: var(--card-bg);
+    overflow: hidden;
+    transition: border-color var(--transition);
+  }
+  .faq-item:hover { border-color: var(--accent); }
+  .faq-question {
+    width: 100%;
+    background: none;
+    border: none;
+    padding: 16px 20px;
+    font-size: 15px;
+    font-weight: 600;
+    text-align: left;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: var(--text-primary);
+    font-family: inherit;
+    transition: background 0.15s;
+    border-radius: var(--radius);
+  }
+  .faq-question:hover { background: var(--accent-light); }
+  .faq-question .icon {
+    font-size: 18px;
+    transition: transform 0.3s;
+    color: var(--text-muted);
+  }
+  .faq-item.open .faq-question .icon { transform: rotate(180deg); }
+  .faq-answer {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.35s ease, padding 0.3s ease;
+    padding: 0 20px;
+    color: var(--text-secondary);
+  }
+  .faq-item.open .faq-answer {
+    max-height: 300px;
+    padding: 0 20px 20px;
+  }
+  .faq-answer p { margin-bottom: 6px; }
+  .faq-answer p:last-child { margin-bottom: 0; }
+
+  /* ===== Horizontal rule ===== */
+  hr {
+    border: none;
+    border-top: 1px solid var(--card-border);
+    margin: 48px 0;
+  }
+
+  /* ===== Responsive ===== */
+  @media (max-width: 600px) {
+    body { padding: 20px 12px; }
+    h1 { font-size: 26px; }
+    .container { max-width: 100%; }
+    .card { padding: 16px; }
+    .code-wrapper pre { padding: 12px 14px; }
+    .copy-btn { top: 4px; right: 6px; padding: 0 10px; font-size: 11px; }
+    table { font-size: 13px; min-width: 320px; }
+    th, td { padding: 8px 10px; }
+    .faq-question { font-size: 14px; padding: 12px 14px; }
+    .copy-link-btn { padding: 0 8px; font-size: 11px; margin-left: 4px; }
+  }
+
+  /* ===== Print ===== */
+  @media print {
+    body { background: white; padding: 0.5in; }
+    .card { box-shadow: none; border-color: #ccc; }
+    .faq-answer { max-height: none !important; padding: 0 20px 20px !important; }
+    .faq-item { border-color: #ccc; }
+    .faq-question .icon { display: none; }
+    .copy-btn, .copy-link-btn { display: none; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+<h1>CC Switch 配置指南</h1>
+<p class="subtitle">将 W-ai-api 接入 CC Switch 的完整步骤</p>
+
+<h2>准备工作</h2>
+
+<h3>1. 安装 CC Switch</h3>
+<p>下载安装：</p>
+<ul>
+  <li>
+    <strong>Windows</strong>:
+    <a href="https://github.com/farion1231/cc-switch/releases/download/v3.16.5/CC-Switch-v3.16.5-Windows.msi" id="download-link">CC-Switch-v3.16.5-Windows.msi</a>
+    <button class="copy-link-btn" data-copy="https://github.com/farion1231/cc-switch/releases/download/v3.16.5/CC-Switch-v3.16.5-Windows.msi">复制链接</button>
+  </li>
+</ul>
+<p>其他平台请前往 <a href="https://github.com/farion1231/cc-switch/releases">GitHub Releases</a> 下载对应版本。</p>
+
+<h3>2. 获取凭证</h3>
+<p>服务开通后，你会收到以下信息：</p>
+<div class="table-wrapper">
+  <table>
+    <tr><th>信息</th><th>说明</th></tr>
+    <tr>
+      <td><strong>Base URL</strong></td>
+      <td>
+        <code id="base-url">https://api.markbl.de5.net/v1</code>
+        <button class="copy-link-btn" data-copy="https://api.markbl.de5.net/v1">复制</button>
+      </td>
+    </tr>
+    <tr>
+      <td><strong>API Key</strong></td>
+      <td>联系服务提供方获取（格式：<code>sk-wa-...</code>）</td>
+    </tr>
+  </table>
+</div>
+
+<hr>
+
+<h2>配置步骤</h2>
+
+<h3>第一步：添加 Provider</h3>
+<ol>
+  <li>启动 CC Switch，点击右上角 <strong>橙色加号（+）</strong> 按钮</li>
+  <li>在弹出的窗口中，下滑找到 <strong>API Key</strong> 输入框</li>
+  <li>填写以下内容：</li>
+</ol>
+<div class="table-wrapper">
+  <table>
+    <tr><th>字段</th><th>填写内容</th></tr>
+    <tr><td><strong>Name</strong></td><td><code>W-ai-api</code></td></tr>
+    <tr><td><strong>API Key</strong></td><td>你的 API Key</td></tr>
+  </table>
+</div>
+
+<h3>第二步：配置路由</h3>
+<div class="card">
+  <div class="card-title">必须开启路由模式</div>
+  <p>否则无法正常使用。具体设置如下：</p>
+  <div class="table-wrapper">
+    <table>
+      <tr><th>设置项</th><th>值</th></tr>
+      <tr><td><strong>启用路由</strong></td><td>开启</td></tr>
+      <tr>
+        <td><strong>请求地址</strong></td>
+        <td>
+          <div style="margin-bottom:6px;">
+            <strong>OpenAI 兼容：</strong>
+            <code>https://api.markbl.de5.net/v1/chat/completions</code>
+            <button class="copy-link-btn" data-copy="https://api.markbl.de5.net/v1/chat/completions">复制</button>
+          </div>
+          <div>
+            <strong>Anthropic 兼容：</strong>
+            <code>https://api.markbl.de5.net/v1/messages</code>
+            <button class="copy-link-btn" data-copy="https://api.markbl.de5.net/v1/messages">复制</button>
+          </div>
+        </td>
+      </tr>
+      <tr><td><strong>认证字段</strong></td><td><code>ANTHROPIC_AUTH_TOKEN</code>（默认值，无需修改）</td></tr>
+      <tr><td><strong>请求地址模式</strong></td><td>完整 URL</td></tr>
+    </table>
+  </div>
+</div>
+<p><strong>两种请求地址格式说明：</strong></p>
+<div class="table-wrapper">
+  <table>
+    <tr><th>格式</th><th>请求地址</th><th>适用工具</th></tr>
+    <tr>
+      <td><strong>OpenAI 兼容格式</strong></td>
+      <td><code>https://api.markbl.de5.net/v1/chat/completions</code></td>
+      <td>Codex、Gemini CLI、OpenCode 等</td>
+    </tr>
+    <tr>
+      <td><strong>Anthropic 兼容格式</strong></td>
+      <td><code>https://api.markbl.de5.net/v1/messages</code></td>
+      <td>Claude Code、Claude Desktop 等</td>
+    </tr>
+  </table>
+</div>
+
+<h3>第三步：配置模型映射（推荐）</h3>
+<p>把你工具里的模型名映射到可用模型即可，参考以下示例：</p>
+<div class="table-wrapper">
+  <table>
+    <tr><th>工具默认模型</th><th>映射到</th></tr>
+    <tr><td><code>claude-sonnet-4-20250514</code></td><td><code>glm-4.7-flash</code></td></tr>
+    <tr><td><code>gpt-4o</code></td><td><code>kimi-k2.7-code</code></td></tr>
+    <tr><td><code>gpt-4-turbo</code></td><td><code>deepseek-coder</code></td></tr>
+    <tr><td><code>gpt-4</code></td><td><code>llama-3.2-3b</code></td></tr>
+  </table>
+</div>
+<p style="color: var(--text-muted); font-size: 13px;">其他 Claude 型号同样映射到 <code>glm-4.7-flash</code> 即可。</p>
+
+<h3>第四步：保存并激活</h3>
+<p>点击 <strong>Save</strong> → 在 Provider 列表中点击 <strong>Activate</strong> 即可使用。</p>
+
+<hr>
+
+<h2>可用模型</h2>
+<div class="table-wrapper">
+  <table>
+    <tr><th>模型名</th><th>说明</th></tr>
+    <tr><td><code>glm-4.7-flash</code></td><td>高速轻量化，性价比高</td></tr>
+    <tr><td><code>kimi-k2.7-code</code></td><td>代码专用，超长上下文</td></tr>
+    <tr><td><code>deepseek-coder</code></td><td>代码与通用推理</td></tr>
+    <tr><td><code>llama-3.2-3b</code></td><td>轻量通用对话</td></tr>
+  </table>
+</div>
+
+<hr>
+
+<h2>验证连接</h2>
+<div class="code-wrapper">
+  <pre><code>curl -X POST "https://api.markbl.de5.net/v1/chat/completions" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer sk-wa-xxxxxxxxxxxx" \
+  -d '{"model":"glm-4.7-flash","messages":[{"role":"user","content":"Hello!"}]}'</code></pre>
+  <button class="copy-btn" data-copy="curl -X POST &quot;https://api.markbl.de5.net/v1/chat/completions&quot; \
+  -H &quot;Content-Type: application/json&quot; \
+  -H &quot;Authorization: Bearer sk-wa-xxxxxxxxxxxx&quot; \
+  -d '{&quot;model&quot;:&quot;glm-4.7-flash&quot;,&quot;messages&quot;:[{&quot;role&quot;:&quot;user&quot;,&quot;content&quot;:&quot;Hello!&quot;}]}'">复制</button>
+</div>
+<p>返回正常的 chat.completion 响应即配置成功。</p>
+
+<div style="text-align:center; margin-top: 48px;">
+  <a href="/docs/" style="color: var(--text-muted); text-decoration: none; font-size: 14px; transition: color 0.15s;">← 返回文档中心</a>
+</div>
+
+<hr>
+
+<h2>💡 注意事项</h2>
+<ul>
+  <li><strong>网络环境</strong>：确保机器可以访问 <code>1.markbl.de5.net</code>，如有需要可配置代理。</li>
+  <li><strong>CC Switch 版本</strong>：建议使用 v3.16.0 及以上版本，旧版本可能不支持部分路由功能。</li>
+  <li><strong>模型映射</strong>：如果工具请求的模型不在可用列表中，请先在映射表中添加对应关系，否则请求会失败。</li>
+  <li><strong>多个 Provider</strong>：可同时配置多个 Provider，通过路由规则灵活切换。</li>
+</ul>
+
+<hr>
+
+<h2>常见问题</h2>
+<div class="faq-list">
+
+  <div class="faq-item">
+    <button class="faq-question">
+      <span>Q: API Key 认证失败？</span>
+      <span class="icon">▾</span>
+    </button>
+    <div class="faq-answer"><p>重新复制粘贴 API Key，注意不要有多余空格，并确保 Key 处于有效期内。</p></div>
+  </div>
+
+  <div class="faq-item">
+    <button class="faq-question">
+      <span>Q: 模型映射不生效？</span>
+      <span class="icon">▾</span>
+    </button>
+    <div class="faq-answer"><p>确认目标模型名在可用模型列表中，检查 CC Switch 映射配置是否正确，并确保已保存并激活。</p></div>
+  </div>
+
+  <div class="faq-item">
+    <button class="faq-question">
+      <span>Q: 如何切回官方 Provider？</span>
+      <span class="icon">▾</span>
+    </button>
+    <div class="faq-answer"><p>在 CC Switch 列表中激活官方 Provider 即可，无需删除 W-ai-api 配置。</p></div>
+  </div>
+
+</div>
+
+<hr>
+
+<h2>环境变量方式（无需 CC Switch）</h2>
+<div class="code-wrapper">
+  <pre><code># macOS / Linux
+export OPENAI_BASE_URL="https://api.markbl.de5.net/v1"
+export OPENAI_API_KEY="sk-wa-xxxxxxxxxxxx"
+
+# Windows PowerShell
+$env:OPENAI_BASE_URL="https://api.markbl.de5.net/v1"
+$env:OPENAI_API_KEY="sk-wa-xxxxxxxxxxxx"</code></pre>
+  <button class="copy-btn" data-copy="export OPENAI_BASE_URL=&quot;https://api.markbl.de5.net/v1&quot;
+export OPENAI_API_KEY=&quot;sk-wa-xxxxxxxxxxxx&quot;
+
+# Windows PowerShell
+$env:OPENAI_BASE_URL=&quot;https://api.markbl.de5.net/v1&quot;
+$env:OPENAI_API_KEY=&quot;sk-wa-xxxxxxxxxxxx&quot;">复制</button>
+</div>
+
+</div>
+
+<script>
+  // ===== Copy functionality =====
+  document.querySelectorAll('[data-copy]').forEach(el => {
+    el.addEventListener('click', function(e) {
+      e.stopPropagation();
+      const text = this.getAttribute('data-copy');
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(text).then(() => {
+          this.classList.add('copied');
+          const origText = this.innerText;
+          this.innerText = '已复制';
+          setTimeout(() => {
+            this.innerText = origText;
+            this.classList.remove('copied');
+          }, 2000);
+        }).catch(() => {
+          fallbackCopy(text, this);
+        });
+      } else {
+        fallbackCopy(text, this);
+      }
+    });
+  });
+
+  function fallbackCopy(text, btn) {
+    const textarea = document.createElement('textarea');
+    textarea.value = text;
+    document.body.appendChild(textarea);
+    textarea.select();
+    try {
+      document.execCommand('copy');
+      btn.classList.add('copied');
+      const origText = btn.innerText;
+      btn.innerText = '已复制';
+      setTimeout(() => {
+        btn.innerText = origText;
+        btn.classList.remove('copied');
+      }, 2000);
+    } catch (e) {
+      alert('复制失败，请手动复制');
+    }
+    document.body.removeChild(textarea);
+  }
+
+  // ===== FAQ Accordion =====
+  document.querySelectorAll('.faq-question').forEach(btn => {
+    btn.addEventListener('click', function() {
+      const item = this.parentElement;
+      item.classList.toggle('open');
+    });
+  });
+</script>
+
+</body>

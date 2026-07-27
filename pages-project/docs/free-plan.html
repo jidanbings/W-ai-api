@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>免费体验计划 - W-ai-api</title>
+<style>
+  :root {
+    --bg: #f5f6f8;
+    --card: #ffffff;
+    --card-hover: #f0f2f5;
+    --border: #e2e5ea;
+    --text: #333639;
+    --text-muted: #8b8f97;
+    --accent: #2563eb;
+    --accent-light: #3b82f6;
+    --success: #16a34a;
+    --warning: #d97706;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans SC', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.8;
+    min-height: 100vh;
+  }
+
+  /* Hero */
+  .hero {
+    text-align: center;
+    padding: 60px 20px 40px;
+    background: linear-gradient(135deg, #f5f6f8 0%, #e8ecf1 50%, #f5f6f8 100%);
+    border-bottom: 1px solid var(--border);
+  }
+  .hero-badge {
+    display: inline-block;
+    background: rgba(37, 99, 235, 0.08);
+    color: var(--accent);
+    font-size: 13px;
+    font-weight: 600;
+    padding: 4px 14px;
+    border-radius: 20px;
+    margin-bottom: 16px;
+    border: 1px solid rgba(37, 99, 235, 0.2);
+  }
+  .hero h1 {
+    font-size: 36px;
+    font-weight: 800;
+    margin-bottom: 8px;
+    letter-spacing: -0.5px;
+  }
+  .hero h1 span {
+    background: linear-gradient(90deg, #2563eb, #7c3aed);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .hero-sub {
+    font-size: 15px;
+    color: var(--text-muted);
+    max-width: 520px;
+    margin: 12px auto 0;
+  }
+  .hero-count {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 20px;
+    background: rgba(22, 163, 74, 0.06);
+    border: 1px solid rgba(22, 163, 74, 0.25);
+    color: var(--success);
+    font-size: 15px;
+    font-weight: 600;
+    padding: 8px 18px;
+    border-radius: 8px;
+  }
+  .hero-count svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; }
+
+  /* Container */
+  .container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 40px 20px 60px;
+  }
+
+  /* Section */
+  .section-title {
+    font-size: 20px;
+    font-weight: 700;
+    margin: 36px 0 16px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid var(--border);
+    color: var(--text);
+  }
+  .section-title:first-child { margin-top: 0; }
+
+  /* Key list */
+  .key-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0;
+    font-size: 14px;
+  }
+  .key-table th {
+    text-align: left;
+    padding: 10px 14px;
+    background: rgba(37, 99, 235, 0.04);
+    color: var(--accent);
+    font-weight: 600;
+    font-size: 13px;
+    border-bottom: 1px solid var(--border);
+  }
+  .key-table td {
+    padding: 10px 14px;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 13px;
+  }
+  .key-table tr:hover td {
+    background: rgba(37, 99, 235, 0.02);
+  }
+  .key-table .status-dot {
+    display: inline-block;
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    margin-right: 6px;
+  }
+  .key-table .status-dot.available { background: var(--success); }
+  .key-table .status-dot.exhausted { background: var(--text-muted); }
+
+  .alert-note {
+    background: rgba(217, 119, 6, 0.06);
+    border: 1px solid rgba(217, 119, 6, 0.2);
+    border-left: 4px solid var(--warning);
+    padding: 14px 18px;
+    border-radius: 8px;
+    font-size: 14px;
+    color: #92400e;
+    margin: 16px 0;
+    line-height: 1.6;
+  }
+
+  /* Code blocks */
+  .code-block {
+    background: #f8f9fa;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin: 12px 0;
+    overflow: hidden;
+  }
+  .code-block-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 14px;
+    background: #eef0f3;
+    border-bottom: 1px solid var(--border);
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+  .code-block-header .copy-btn {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    padding: 3px 10px;
+    border-radius: 4px;
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .code-block-header .copy-btn:hover {
+    background: #dde0e5;
+    color: var(--text);
+  }
+  .code-block pre {
+    padding: 14px 16px;
+    overflow-x: auto;
+    font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    color: #333639;
+  }
+  .code-block code { font-family: inherit; }
+
+  /* Inline code */
+  code.inline {
+    background: rgba(37, 99, 235, 0.08);
+    color: var(--accent);
+    padding: 2px 7px;
+    border-radius: 4px;
+    font-size: 13px;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+  }
+
+  /* Model table */
+  .model-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 12px 0;
+    font-size: 14px;
+  }
+  .model-table th {
+    text-align: left;
+    padding: 8px 12px;
+    background: rgba(37, 99, 235, 0.04);
+    color: var(--accent);
+    font-weight: 600;
+    font-size: 13px;
+    border-bottom: 1px solid var(--border);
+    width: 100px;
+  }
+  .model-table td {
+    padding: 8px 12px;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+    color: #555;
+    font-size: 13px;
+  }
+  .model-table tr:hover td { background: rgba(37, 99, 235, 0.02); }
+
+  /* FAQ */
+  .faq-item {
+    margin: 14px 0;
+    padding: 16px 18px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    transition: border-color 0.15s;
+  }
+  .faq-item:hover { border-color: rgba(37, 99, 235, 0.25); }
+  .faq-q {
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--accent);
+    margin-bottom: 6px;
+  }
+  .faq-a {
+    font-size: 14px;
+    color: #555;
+    line-height: 1.7;
+  }
+
+  /* Deploy card */
+  .deploy-card {
+    background: linear-gradient(135deg, var(--card), #f0f2f5);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px 28px;
+    margin: 16px 0;
+  }
+  .deploy-card .cmd {
+    background: #f8f9fa;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px 14px;
+    font-family: 'SF Mono', monospace;
+    font-size: 13px;
+    color: #333639;
+    margin-top: 10px;
+    overflow-x: auto;
+  }
+
+  /* Footer */
+  .footer {
+    text-align: center;
+    padding: 30px 20px 40px;
+    color: var(--text-muted);
+    font-size: 13px;
+    border-top: 1px solid var(--border);
+  }
+  .footer a { color: var(--accent); text-decoration: none; }
+  .footer a:hover { text-decoration: underline; }
+
+  /* Urgency banner */
+  .urgency-banner {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    background: linear-gradient(90deg, rgba(217, 119, 6, 0.04), rgba(217, 119, 6, 0.1), rgba(217, 119, 6, 0.04));
+    border: 1px solid rgba(217, 119, 6, 0.2);
+    padding: 12px 18px;
+    border-radius: 10px;
+    font-size: 14px;
+    color: #92400e;
+    margin: 24px 0;
+    text-align: center;
+  }
+  .urgency-banner svg { width: 20px; height: 20px; flex-shrink: 0; fill: none; stroke: currentColor; stroke-width: 2; }
+
+  .back-link {
+    display: inline-block;
+    margin-top: 32px;
+    color: var(--text-muted);
+    text-decoration: none;
+    font-size: 14px;
+    transition: color 0.15s;
+  }
+  .back-link:hover { color: var(--accent); }
+</style>
+</head>
+<body>
+
+<!-- Hero -->
+<div class="hero">
+  <div class="hero-badge">社区共享 · 公益项目</div>
+  <h1>🎁 <span>W-ai-api</span> 免费体验计划</h1>
+  <p class="hero-sub">5 枚体验密钥，每枚每天 2000 神经元，每日自动刷新，社区共享。</p>
+  <div class="hero-count">
+    <svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+    每日 2000 神经元 · 早 8 点重置
+  </div>
+</div>
+
+<div class="container">
+
+  <!-- 项目介绍 -->
+  <h2 class="section-title">关于 W-ai-api</h2>
+  <p style="color: #555; font-size: 14px; line-height: 1.8; margin-bottom: 4px;">
+    W-ai-api 是一个社区驱动的 AI API 聚合服务，基于 Cloudflare Workers 构建，
+    接入了多个 AI 服务商，提供 <strong style="color: var(--text);">OpenAI 兼容接口</strong>，
+    让你用一套 API 就能调用多种主流模型。
+  </p>
+  <p style="color: #555; font-size: 14px; line-height: 1.8;">
+    这不是商业项目，而是个人维护的共享服务。如果好用，欢迎分享给更多人。
+  </p>
+
+  <!-- 密钥列表 -->
+  <h2 class="section-title">🔑 体验密钥</h2>
+  <table class="key-table">
+    <thead>
+      <tr><th style="width: 40px;">#</th><th>Key</th><th style="width: 70px;">状态</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>1</td><td>sk-wa-9cad3521e2964614bd749b6e1895d58b</td><td><span class="status-dot available"></span>可用</td></tr>
+      <tr><td>2</td><td>sk-wa-43f5374f638f4aea9cfd37a46b0aaf8a</td><td><span class="status-dot available"></span>可用</td></tr>
+      <tr><td>3</td><td>sk-wa-973abf7740b14844aafe3c2e5b7543c7</td><td><span class="status-dot available"></span>可用</td></tr>
+      <tr><td>4</td><td>sk-wa-9f4ffbfd84914ab9bc357604c38ad9c9</td><td><span class="status-dot available"></span>可用</td></tr>
+      <tr><td>5</td><td>sk-wa-fbeba4cd484d42b6934ec8af7dae477f</td><td><span class="status-dot available"></span>可用</td></tr>
+    </tbody>
+  </table>
+
+  <div class="alert-note">
+    ⚠️ 每枚密钥每天限制 2000 神经元，北京时间 8:00 自动重置。额度用完后当日无法继续调用。
+  </div>
+
+  <!-- 快速开始 -->
+  <h2 class="section-title">🚀 快速开始</h2>
+
+  <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 8px;">
+    <strong style="color: var(--text);">API 地址：</strong>
+    <code class="inline">https://api.markbl.de5.net/v1</code>
+  </p>
+
+  <h3 style="font-size: 15px; font-weight: 600; margin: 20px 0 8px; color: var(--accent-light);">cURL</h3>
+
+  <div class="code-block">
+    <div class="code-block-header">
+      <span>🐧 macOS / Linux (bash)</span>
+      <button class="copy-btn" onclick="copyCode(this)">复制</button>
+    </div>
+    <pre><code>curl https://api.markbl.de5.net/v1/chat/completions \
+  -H "Authorization: Bearer sk-wa-9cad3521e2964614bd749b6e1895d58b" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "glm-4.7-flash",
+    "messages": [{"role": "user", "content": "你好！"}]
+  }'</code></pre>
+  </div>
+
+  <div class="code-block">
+    <div class="code-block-header">
+      <span>🪟 Windows (CMD — 一行输入)</span>
+      <button class="copy-btn" onclick="copyCode(this)">复制</button>
+    </div>
+    <pre><code>curl -X POST "https://api.markbl.de5.net/v1/chat/completions" -H "Authorization: Bearer sk-wa-9cad3521e2964614bd749b6e1895d58b" -H "Content-Type: application/json" -d "{\"model\":\"glm-4.7-flash\",\"messages\":[{\"role\":\"user\",\"content\":\"你好！\"}]}"</code></pre>
+  </div>
+
+  <div class="code-block">
+    <div class="code-block-header">
+      <span>🪟 Windows (PowerShell)</span>
+      <button class="copy-btn" onclick="copyCode(this)">复制</button>
+    </div>
+    <pre><code>curl -X POST "https://api.markbl.de5.net/v1/chat/completions" -H "Content-Type: application/json" -H "Authorization: Bearer sk-wa-9cad3521e2964614bd749b6e1895d58b" -d '{"model":"glm-4.7-flash","messages":[{"role":"user","content":"你好！"}]}'</code></pre>
+  </div>
+
+  <h3 style="font-size: 15px; font-weight: 600; margin: 20px 0 8px; color: var(--accent-light);">Python (openai 库)</h3>
+  <p style="font-size: 13px; color: var(--warning); margin: 0 0 8px;">⚠️ 请逐行手打，特别注意 <code>base_url</code> 的引号内不要多打任何字符（如反引号 <code>`</code>）。也可直接保存为 .py 文件运行。</p>
+  <div class="code-block">
+    <div class="code-block-header">
+      <span>python</span>
+      <button class="copy-btn" onclick="copyCode(this)">复制</button>
+    </div>
+    <pre><code>from openai import OpenAI
+
+client = OpenAI(
+    base_url="https://api.markbl.de5.net/v1",
+    api_key="sk-wa-9cad3521e2964614bd749b6e1895d58b"
+)
+
+response = client.chat.completions.create(
+    model="glm-4.7-flash",
+    messages=[{"role": "user", "content": "你好！"}]
+)
+print(response.choices[0].message.content)</code></pre>
+  </div>
+
+  <h3 style="font-size: 15px; font-weight: 600; margin: 20px 0 8px; color: var(--accent-light);">JavaScript</h3>
+  <div class="code-block">
+    <div class="code-block-header">
+      <span>javascript</span>
+      <button class="copy-btn" onclick="copyCode(this)">复制</button>
+    </div>
+    <pre><code>const openai = new OpenAI({
+  baseURL: "https://api.markbl.de5.net/v1",
+  apiKey: "sk-wa-9cad3521e2964614bd749b6e1895d58b",
+});
+
+const response = await openai.chat.completions.create({
+  model: "glm-4.7-flash",
+  messages: [{ role: "user", content: "你好！" }],
+});
+console.log(response.choices[0].message.content);</code></pre>
+  </div>
+
+  <!-- 模型列表 -->
+  <h2 class="section-title">🧠 支持模型</h2>
+  <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 10px;">
+    当前开放以下模型：
+  </p>
+  <table class="model-table">
+    <tr><th>💬 模型</th><th>说明</th></tr>
+    <tr><td><code class="inline">glm-4.7-flash</code></td><td>高速轻量化，性价比高</td></tr>
+    <tr><td><code class="inline">kimi-k2.7-code</code></td><td>代码专用，超长上下文</td></tr>
+    <tr><td><code class="inline">deepseek-coder</code></td><td>代码与通用推理</td></tr>
+    <tr><td><code class="inline">llama-3.2-3b</code></td><td>轻量通用对话</td></tr>
+  </table>
+  <p style="color: var(--text-muted); font-size: 13px; margin-top: 4px;">
+    完整模型列表可通过 <code class="inline">GET /api/models</code> 获取。
+  </p>
+
+  <!-- 紧迫感 -->
+  <div class="urgency-banner">
+    <svg viewBox="0 0 24 24"><path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+    每日 2000 神经元 — 北京时间 8:00 自动重置，刚好够日常体验
+  </div>
+
+  <!-- FAQ -->
+  <h2 class="section-title">📋 常见问题</h2>
+
+  <div class="faq-item">
+    <div class="faq-q">密钥能用到什么时候？</div>
+    <div class="faq-a">密钥长期有效。每枚每天 2000 神经元配额，北京时间 8:00 自动重置。当日额度用完即止，次日恢复。</div>
+  </div>
+  <div class="faq-item">
+    <div class="faq-q">有调用频率限制吗？</div>
+    <div class="faq-a">没有严格的频率限制，只要当日 2000 神经元额度未耗尽即可正常调用。请合理使用。</div>
+  </div>
+  <div class="faq-item">
+    <div class="faq-q">能用在自己的项目里吗？</div>
+    <div class="faq-a">当然可以，个人项目、学习实验、AI 工具都可以直接用。</div>
+  </div>
+  <div class="faq-item">
+    <div class="faq-q">2000 神经元大概能调用多少次？</div>
+    <div class="faq-a">以 <code class="inline">llama-3.2-3b</code> 为例，输入输出约 1:1 的情况下，一个对话约 4-6 神经元，每天可以调用几百次。高频使用建议自行部署。</div>
+  </div>
+
+  <!-- 自行部署 -->
+  <h2 class="section-title">🏗️ 自行部署</h2>
+  <div class="deploy-card">
+    <p style="font-size: 14px; color: #555;">
+      项目尚未开源，请关注后续更新。你也可以通过类似架构自行搭建 AI API 聚合服务。
+    </p>
+  </div>
+
+  <!-- 结语 -->
+  <div style="text-align: center; margin: 40px 0 20px; padding: 30px; background: var(--card); border-radius: 12px; border: 1px solid var(--border);">
+    <p style="font-size: 15px; color: #555; line-height: 1.8;">
+      技术的美好在于分享。<br>
+      希望这 5 枚密钥能帮你省去一些折腾的时间，让你更专注于真正重要的事情。
+    </p>
+    <p style="font-size: 14px; color: var(--accent); font-weight: 600; margin-top: 12px;">
+      祝玩得开心 🎉
+    </p>
+  </div>
+
+  <a class="back-link" href="/docs/">&larr; 返回文档中心</a>
+
+</div>
+
+<div class="footer">
+  <a href="/">W-ai-api</a> &middot; 社区共享 &middot; 公益项目
+</div>
+
+<script>
+function copyCode(btn) {
+  const pre = btn.closest('.code-block').querySelector('pre code');
+  const text = pre.textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    const t = btn.textContent;
+    btn.textContent = '已复制';
+    setTimeout(() => btn.textContent = t, 1500);
+  });
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>文档中心 - W-ai-api</title>
+<style>
+  :root {
+    --bg: #f5f6f8;
+    --card: #ffffff;
+    --border: #e2e5ea;
+    --text: #333639;
+    --text-muted: #8b8f97;
+    --accent: #1e40af;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans SC', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.7;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+  }
+  .container {
+    max-width: 600px;
+    width: 100%;
+  }
+  h1 {
+    font-size: 28px;
+    font-weight: 700;
+    text-align: center;
+    margin-bottom: 8px;
+  }
+  .subtitle {
+    text-align: center;
+    color: var(--text-muted);
+    margin-bottom: 40px;
+    font-size: 14px;
+  }
+  .doc-card {
+    display: block;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 16px;
+    text-decoration: none;
+    color: var(--text);
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  .doc-card:hover {
+    border-color: var(--accent);
+    box-shadow: 0 4px 16px rgba(30, 64, 175, 0.08);
+  }
+  .doc-card-title {
+    font-size: 17px;
+    font-weight: 600;
+    margin-bottom: 6px;
+    color: var(--accent);
+  }
+  .doc-card-desc {
+    font-size: 14px;
+    color: var(--text-muted);
+  }
+  .back-link {
+    display: inline-block;
+    margin-top: 24px;
+    text-align: center;
+    width: 100%;
+    color: var(--text-muted);
+    text-decoration: none;
+    font-size: 14px;
+  }
+  .back-link:hover {
+    color: var(--accent);
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>文档中心</h1>
+  <p class="subtitle">选择下方文档查看详细说明</p>
+
+  <a class="doc-card" href="/docs/cc-switch-guide.html">
+    <div class="doc-card-title">CC Switch 配置指南</div>
+    <div class="doc-card-desc">将 W-ai-api 接入 CC Switch 的完整步骤，包含 Provider 添加、路由配置、模型映射等。</div>
+  </a>
+
+  <a class="doc-card" href="/docs/free-plan.html">
+    <div class="doc-card-title">🎁 免费体验计划</div>
+    <div class="doc-card-desc">5 枚体验密钥，每日 2000 神经元配额，社区共享，用完即止。点击查看详情。</div>
+  </a>
+
+  <a class="doc-card" href="/docs/api-guide.html">
+    <div class="doc-card-title">API 调用指南</div>
+    <div class="doc-card-desc">Base URL、认证方式、可用接口（聊天补全/模型列表/文本嵌入）、OpenAI SDK 接入示例。</div>
+  </a>
+
+  <a class="back-link" href="/">&larr; 返回首页</a>
+</div>
+</body>
+</html>

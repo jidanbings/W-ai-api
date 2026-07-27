@@ -474,6 +474,32 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_model_stats_date_model ON model_stats(log_
 
 唯一索引：`idx_model_stats_date_model`（log_date + model）
 
+#### 8. `login_audit_logs` 表 — 登录审计日志
+
+```sql
+CREATE TABLE IF NOT EXISTS login_audit_logs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    ip TEXT NOT NULL,
+    status TEXT NOT NULL,
+    user_agent TEXT DEFAULT '',
+    created_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_login_audit_logs_created_at ON login_audit_logs(created_at);
+CREATE INDEX IF NOT EXISTS idx_login_audit_logs_ip ON login_audit_logs(ip);
+```
+
+| 列名 | 类型 | 说明 |
+|------|------|------|
+| `id` | INTEGER | 自增主键 |
+| `ip` | TEXT | 客户端 IP 地址 |
+| `status` | TEXT | 登录状态（如"登录成功"、"密码错误"、"2FA 验证码错误"） |
+| `user_agent` | TEXT | 客户端 User-Agent |
+| `created_at` | INTEGER | 创建时间戳 |
+
+索引：`idx_login_audit_logs_created_at`、`idx_login_audit_logs_ip`
+
+---
+
 ### 密钥用量追踪流
 
 ```
@@ -523,7 +549,9 @@ Worker 启动后内存中维护以下缓存：
   - 设置：生成 20 字节随机密钥 → Base32 编码 → 暂存 → 验证 TOTP 码 → 正式启用
   - 登录：密码验证通过 → 需要 2FA → 返回临时 token（5 分钟有效）→ 验证 TOTP 码 → 创建正式 Session
   - 禁用：需输入当前 TOTP 码确认
-- **登录限流**：同一 IP 5 分钟内最多 5 次失败尝试
+- **登录限流**：同一 IP 5 分钟内最多 5 次失败尝试（原子化操作，使用 `INSERT ... ON CONFLICT` 避免竞态条件）
+- **CSRF 防护**：登录接口验证 `Origin` 或 `Referer` 是否与请求自身的 `Host` 头匹配（同源校验），支持自定义域名，无 Origin/Referer 时放行（兼容 curl 等非浏览器客户端）
+- **登录审计日志**：每次登录尝试（成功/失败）均记录到 `login_audit_logs` 表，包含 IP、状态、User-Agent 和时间戳
 - **退出**：清除 Session 并设置 Cookie Max-Age=0
 
 ### 2. API 代理认证
@@ -531,14 +559,43 @@ Worker 启动后内存中维护以下缓存：
 - 支持 `x-api-key` 和 `Authorization: Bearer` 两种方式
 - 空密钥列表时跳过认证（公开模式）
 - 认证失败时，`/v1/messages` 返回 Anthropic 格式错误，其他路径返回 OpenAI 格式错误
+- **API Key 格式校验**：密钥必须以 `sk-wa-` 开头且长度至少 20 字符，格式不合法直接拒绝
 
-### 3. 跨域 (CORS)
+### 3. 响应安全头 (Security Headers)
+
+所有响应（包括错误页面）均通过 `addSecurityHeaders` 函数添加以下安全头：
+
+| 响应头 | 值 | 说明 |
+|--------|------|------|
+| `X-Content-Type-Options` | `nosniff` | 防止 MIME 类型嗅探攻击 |
+| `X-Frame-Options` | `DENY` | 禁止页面被嵌入 iframe，防止点击劫持 |
+| `Referrer-Policy` | `no-referrer` | 禁止在请求头中发送 Referer 信息 |
+| `Content-Security-Policy` | `default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; font-src 'self'; base-uri 'self'; form-action 'self'` | 限制资源加载来源，仅允许同源和可信 CDN |
+
+### 4. 子资源完整性 (SRI)
+
+管理后台 (`admin.html`) 中引用的 CDN 脚本均添加了 `integrity` 和 `crossorigin` 属性：
+
+| 脚本 | 完整性哈希 |
+|------|-----------|
+| Chart.js 4.4.1 | `sha384-bs/nf9FbdNouRbMiFcrcZfLXYPKiPaGVGplVbv7dLGECccEXDW+S3zjqSKR5ZEaD` |
+| QRCode.js 1.0.0 | `sha384-3zSEDfvllQohrq0PHL1fOXJuC/jSOO34H46t6UQfobFOmxE5BpjjaIJY5F2/bMnU` |
+
+### 5. 代理接口请求频率限制
+
+所有 `/v1/` 代理接口均基于 IP 进行请求频率限制：
+- 时间窗口：1 分钟
+- 最大请求数：每分钟 60 次
+- 超限时返回 HTTP 429 `rate_limit_exceeded` 错误
+- 计数器通过 D1 `config_store` 表存储，按时间窗口分片
+
+### 6. 跨域 (CORS)
 
 - `Access-Control-Allow-Origin: *`
 - 允许方法：`GET, POST, OPTIONS, DELETE`
 - 允许头：`Content-Type, Authorization, x-api-key`
 
-### 4. CF Token 保护
+### 7. CF Token 保护
 
 - **API 响应**：`/api/accounts` GET 返回 Token 遮盖后四位（`abc****efgh`）
 - **前端存储**：Token 不再嵌入 HTML `onclick` 属性，仅存于 JS 内存变量 `window.__accounts`

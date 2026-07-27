@@ -236,6 +236,16 @@ CREATE TABLE IF NOT EXISTS model_stats (
     total_completion_tokens INTEGER DEFAULT 0
 );
 CREATE UNIQUE INDEX IF NOT EXISTS idx_model_stats_date_model ON model_stats(log_date, model);
+
+CREATE TABLE IF NOT EXISTS login_audit_logs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    ip TEXT NOT NULL,
+    status TEXT NOT NULL,
+    user_agent TEXT DEFAULT '',
+    created_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_login_audit_logs_created_at ON login_audit_logs(created_at);
+CREATE INDEX IF NOT EXISTS idx_login_audit_logs_ip ON login_audit_logs(ip);
 ```
 
 ## API 使用
@@ -307,14 +317,14 @@ curl https://api.markbl.de5.net/v1/embeddings \
 
 ```
 ├── pages-project/          # Cloudflare Pages 部署目录
-│   ├── _worker.js          # 主线 Worker（所有后端逻辑，约 4500 行）
+│   ├── _worker.js          # 主线 Worker（所有后端逻辑，约 4600 行）
 │   ├── _routes.json        # Pages 路由规则
 │   ├── index.html          # 首页/登录页
-│   ├── admin.html          # 管理后台单页应用
+│   ├── admin.html          # 管理后台单页应用（含 SRI 安全属性）
 │   ├── docs/               # 文档页面
 │   └── ...
 ├── docs/
-│   └── architecture.md     # 详细架构文档
+│   └── architecture.md     # 详细架构文档（含安全机制、存储结构、路由表）
 ├── README.md
 ├── .gitignore
 └── .gitattributes
@@ -336,7 +346,7 @@ curl https://api.markbl.de5.net/v1/embeddings \
   ▼
 /v1/chat/completions 或 /v1/messages
   │
-  ├─ 鉴权 → 模型解析 → 限额检查
+  ├─ 鉴权 → 模型解析 → 限额检查 → 请求频率限制
   │
   ├─ 格式转换 (Anthropic ↔ OpenAI，仅 /v1/messages)
   │
@@ -357,9 +367,21 @@ curl https://api.markbl.de5.net/v1/embeddings \
 - 管理员密码通过 `ADMIN_PASSWORD` 环境变量配置
 - Session 基于 HttpOnly/Secure/SameSite=Strict Cookie
 - 支持 TOTP 双因素认证 (2FA)
-- 同一 IP 5 分钟内最多 5 次登录尝试
+- 同一 IP 5 分钟内最多 5 次登录尝试（原子化操作，避免竞态条件）
+- CSRF 防护：登录接口验证 Origin/Referer 请求头
+- 登录审计日志：所有登录尝试记录到 D1 数据库
 - API Key 支持模型白名单和每日限额
+- API Key 格式校验：必须以 `sk-wa-` 开头且长度至少 20 字符
+- 代理接口请求频率限制：每分钟最多 60 次请求
+- 响应安全头：CSP、X-Content-Type-Options、X-Frame-Options、Referrer-Policy
+- CDN 脚本子资源完整性 (SRI)：Chart.js 和 QRCode.js 均配置 integrity 哈希
 - CF Token 在管理后台遮盖显示，仅存于内存变量
+
+---
+
+## 更新日志
+
+详细的版本更新记录见 [CHANGELOG.md](CHANGELOG.md)。
 
 ---
 

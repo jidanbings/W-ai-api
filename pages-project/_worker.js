@@ -51,13 +51,15 @@ export default {
 
 			// 处理跨域预检请求（OPTIONS）
 			if (request.method === 'OPTIONS') {
-				return new Response(null, {
+				const optResp = new Response(null, {
 					headers: {
 						'Access-Control-Allow-Origin': '*',
 						'Access-Control-Allow-Methods': 'GET, POST, OPTIONS, DELETE',
 						'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-api-key'
 					}
 				});
+				addSecurityHeaders(optResp);
+				return optResp;
 			}
 
 			const url = new URL(request.url);
@@ -141,13 +143,33 @@ export default {
 	}
 };
 
-// 工具函数：给响应加上跨域（CORS）响应头
+// 工具函数：给响应加上跨域（CORS）响应头和安全头
 function addCORSHeaders(response) {
 	const newResponse = new Response(response.body, response);
 	newResponse.headers.set('Access-Control-Allow-Origin', '*');
 	newResponse.headers.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, DELETE');
 	newResponse.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-api-key');
+	// 安全响应头
+	addSecurityHeaders(newResponse);
 	return newResponse;
+}
+
+// 添加安全响应头
+function addSecurityHeaders(response) {
+	response.headers.set('X-Content-Type-Options', 'nosniff');
+	response.headers.set('X-Frame-Options', 'DENY');
+	response.headers.set('Referrer-Policy', 'no-referrer');
+	// CSP: 只允许加载同源资源和可信 CDN
+	response.headers.set('Content-Security-Policy',
+		"default-src 'self'; " +
+		"script-src 'self' https://cdnjs.cloudflare.com; " +
+		"style-src 'self' 'unsafe-inline'; " +
+		"img-src 'self' data:; " +
+		"connect-src 'self'; " +
+		"font-src 'self'; " +
+		"base-uri 'self'; " +
+		"form-action 'self'"
+	);
 }
 
 // 工具函数：计算字符串的 SHA-256 哈希值
@@ -161,7 +183,7 @@ async function sha256(message) {
 // ----------------------------------------------------
 // 配置存储（config_store 表，按 key 独立存取，避免竞态条件）
 // ----------------------------------------------------
-const CONFIG_CACHE_TTL = 300000; // 5 分钟，配置不常变更
+const CONFIG_CACHE_TTL = 30000; // 30 秒，配置变更后快速生效
 const configCache = {};
 
 async function getConfigValue(env, key, defaultVal) {
@@ -495,19 +517,35 @@ async function checkRateLimit(env, ip) {
 
 async function recordFailedAttempt(env, ip) {
 	const now = Date.now();
-	const row = await env.DB.prepare('SELECT count, window_start FROM rate_limits WHERE ip = ?').bind(ip).first();
+	// 原子化操作：使用 INSERT ... ON CONFLICT 避免竞态条件
+	// 窗口内已有记录时累加，否则新建记录
+	await env.DB.prepare(`
+		INSERT INTO rate_limits (ip, count, window_start, updated_at)
+		VALUES (?, 1, ?, ?)
+		ON CONFLICT(ip) DO UPDATE SET
+			count = CASE
+				WHEN ? - window_start <= ? THEN count + 1
+				ELSE 1
+			END,
+			window_start = CASE
+				WHEN ? - window_start <= ? THEN window_start
+				ELSE ?
+			END,
+			updated_at = ?
+	`).bind(ip, now, now, now, RATE_LIMIT_WINDOW_MS, now, RATE_LIMIT_WINDOW_MS, now, now).run();
+}
 
-	let count, windowStart;
-	if (row && (now - row.window_start) <= RATE_LIMIT_WINDOW_MS) {
-		count = row.count + 1;
-		windowStart = row.window_start;
-		await env.DB.prepare('UPDATE rate_limits SET count = ?, updated_at = ? WHERE ip = ?')
-			.bind(count, now, ip).run();
-	} else {
-		count = 1;
-		windowStart = now;
-		await env.DB.prepare('INSERT OR REPLACE INTO rate_limits (ip, count, window_start, updated_at) VALUES (?, ?, ?, ?)')
-			.bind(ip, count, windowStart, now).run();
+// ----------------------------------------------------
+// 登录审计日志
+// ----------------------------------------------------
+async function logLoginAudit(env, ip, status, userAgent) {
+	try {
+		await env.DB.prepare(
+			'INSERT INTO login_audit_logs (ip, status, user_agent, created_at) VALUES (?, ?, ?, ?)'
+		).bind(ip, status, userAgent || '', Date.now()).run();
+	} catch (e) {
+		// 审计日志写入失败不应影响主流程
+		console.error('logLoginAudit error:', e);
 	}
 }
 
@@ -548,6 +586,14 @@ async function verifyAdminCookie(request, env) {
 // ----------------------------------------------------
 // 代理接口的鉴权工具函数 — 返回匹配的密钥对象或 null
 // ----------------------------------------------------
+// API Key 格式校验：密钥必须以 "sk-wa-" 开头，长度至少 20 字符
+const API_KEY_PREFIX = 'sk-wa-';
+const API_KEY_MIN_LENGTH = 20;
+
+function isValidApiKeyFormat(key) {
+	return typeof key === 'string' && key.startsWith(API_KEY_PREFIX) && key.length >= API_KEY_MIN_LENGTH;
+}
+
 async function checkProxyAuth(request, env) {
 	const apiKeys = await getApiKeys(env);
 	if (apiKeys.length === 0) {
@@ -559,6 +605,9 @@ async function checkProxyAuth(request, env) {
 	// 先检查 x-api-key 头
 	const xApiKey = request.headers.get('x-api-key');
 	if (xApiKey) {
+		if (!isValidApiKeyFormat(xApiKey)) {
+			return null; // 格式不合法，直接拒绝
+		}
 		const matched = apiKeys.find(k => k.key === xApiKey && k.status !== 'inactive');
 		if (matched) {
 			return { key: matched.key, keyId: matched.id, keyName: matched.name, allowedModels: matched.allowedModels || null, providerIds: matched.providerIds && matched.providerIds.length > 0 ? matched.providerIds : null, dailyNeuronLimit: matched.dailyNeuronLimit || 1000000 };
@@ -569,6 +618,9 @@ async function checkProxyAuth(request, env) {
 	const authHeader = request.headers.get('Authorization');
 	if (authHeader && authHeader.startsWith('Bearer ')) {
 		const token = authHeader.substring(7);
+		if (!isValidApiKeyFormat(token)) {
+			return null; // 格式不合法，直接拒绝
+		}
 		const matched = apiKeys.find(k => k.key === token && k.status !== 'inactive');
 		if (matched) {
 			return { key: matched.key, keyId: matched.id, keyName: matched.name, allowedModels: matched.allowedModels || null, providerIds: matched.providerIds && matched.providerIds.length > 0 ? matched.providerIds : null, dailyNeuronLimit: matched.dailyNeuronLimit || 1000000 };
@@ -711,31 +763,38 @@ async function queryGraphQL(accountId, apiToken, startDateTime) {
 			}
 		}
 	`;
-	const response = await fetch(`https://api.cloudflare.com/client/v4/graphql`, {
-		method: 'POST',
-		headers: {
-			'Authorization': `Bearer ${apiToken}`,
-			'Content-Type': 'application/json'
-		},
-		body: JSON.stringify({
-			query,
-			variables: {
-				accountId,
-				start: startDateTime
-			}
-		})
-	});
+	const controller = new AbortController();
+	const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 秒超时
+	try {
+		const response = await fetch(`https://api.cloudflare.com/client/v4/graphql`, {
+			method: 'POST',
+			headers: {
+				'Authorization': `Bearer ${apiToken}`,
+				'Content-Type': 'application/json'
+			},
+			body: JSON.stringify({
+				query,
+				variables: {
+					accountId,
+					start: startDateTime
+				}
+			}),
+			signal: controller.signal
+		});
+		clearTimeout(timeoutId);
+		if (!response.ok) {
+			throw new Error(`GraphQL API error: ${response.statusText}`);
+		}
 
-	if (!response.ok) {
-		throw new Error(`GraphQL API error: ${response.statusText}`);
+		const result = await response.json();
+		if (result.errors && result.errors.length > 0) {
+			throw new Error(result.errors[0].message);
+		}
+
+		return result?.data?.viewer?.accounts?.[0]?.aiInferenceAdaptiveGroups || [];
+	} finally {
+		clearTimeout(timeoutId);
 	}
-
-	const result = await response.json();
-	if (result.errors && result.errors.length > 0) {
-		throw new Error(result.errors[0].message);
-	}
-
-	return result?.data?.viewer?.accounts?.[0]?.aiInferenceAdaptiveGroups || [];
 }
 
 function processAnalytics(groups) {
@@ -1095,6 +1154,24 @@ async function handleV1Proxy(request, env, ctx) {
 				code: "invalid_api_key"
 			}
 		}), { status: 401, headers: { 'Content-Type': 'application/json' } });
+	}
+
+	// 1.3 代理接口请求频率限制（基于 IP）
+	const PROXY_RATE_LIMIT_WINDOW = 60000; // 1 分钟窗口
+	const PROXY_RATE_LIMIT_MAX = 60;       // 每分钟最多 60 次请求
+	const clientIp = request.headers.get('CF-Connecting-IP') || 'unknown';
+	const proxyRateKey = `proxy_rate:${clientIp}:${Math.floor(Date.now() / PROXY_RATE_LIMIT_WINDOW)}`;
+	const proxyRateRow = await env.DB.prepare('SELECT value FROM config_store WHERE key = ?').bind(proxyRateKey).first();
+	if (proxyRateRow) {
+		const count = parseInt(proxyRateRow.value, 10);
+		if (count >= PROXY_RATE_LIMIT_MAX) {
+			return new Response(JSON.stringify({
+				error: { message: "Too many requests. Please try again later.", type: "rate_limit_error", code: "rate_limit_exceeded" }
+			}), { status: 429, headers: { 'Content-Type': 'application/json' } });
+		}
+		await env.DB.prepare('UPDATE config_store SET value = ?, updated_at = ? WHERE key = ?').bind(String(count + 1), Date.now(), proxyRateKey).run();
+	} else {
+		await env.DB.prepare('INSERT INTO config_store (key, value, updated_at) VALUES (?, ?, ?)').bind(proxyRateKey, '1', Date.now()).run();
 	}
 
 	// 1.5 检查 API 密钥的每日神经元消耗限制
@@ -1701,8 +1778,7 @@ async function handleCompletions(request, env, ctx, pathname, authInfo) {
 				errorType: result.error?.substring(0, 200) + (result._diag ? ' | DIAG:' + JSON.stringify(result._diag) : '') || 'unknown_error'
 			}));
 			return new Response(JSON.stringify({
-				error: { message: result.error, type: "server_error" },
-				_diag: result._diag
+				error: { message: result.error, type: "server_error" }
 			}), { status: 502, headers: { 'Content-Type': 'application/json' } });
 		}
 
@@ -2119,7 +2195,6 @@ async function handleMessages(request, env, ctx, authInfo) {
 			errorDetail || { message: result.error },
 			502
 		);
-		anthropicError._diag = result._diag;
 		return new Response(JSON.stringify(anthropicError), {
 			status: 502,
 			headers: { 'Content-Type': 'application/json' }
@@ -2866,9 +2941,8 @@ async function handleWebSocketRequest(request, env) {
 		}
 
 		const url = new URL(request.url);
-		const apiKey = url.searchParams.get('api_key') ||
-			url.searchParams.get('key') ||
-			request.headers.get('x-api-key');
+		// 安全：仅从请求头获取 API Key，不使用 URL 参数（避免日志泄漏和 Referer 泄漏）
+		const apiKey = request.headers.get('x-api-key');
 
 		const webSocketPair = new WebSocketPair();
 		const [client, server] = Object.values(webSocketPair);
@@ -3005,8 +3079,33 @@ async function handleDashboardApi(request, env, ctx) {
 		return new Response(JSON.stringify({ error: 'Setup is handled via environment variable ADMIN_PASSWORD' }), { status: 400, headers: { 'Content-Type': 'application/json' } });
 	}
 
-	// 3. 登录（session + 2FA + 限流 + Secure Cookie）
+	// 3. 登录（session + 2FA + 限流 + CSRF 防护 + Secure Cookie）
 	if (url.pathname === '/api/auth/login' && method === 'POST') {
+		// CSRF 防护：验证 Origin 或 Referer 是否与请求自身的 Host 匹配（同源校验）
+		// 使用 Host 头而非硬编码域名列表，确保自定义域名也能正常使用
+		const host = request.headers.get('Host');
+		const origin = request.headers.get('Origin');
+		const referer = request.headers.get('Referer');
+		if (origin) {
+			try {
+				const originUrl = new URL(origin);
+				if (originUrl.hostname !== host && originUrl.hostname !== 'localhost') {
+					return new Response(JSON.stringify({ error: 'CSRF: Invalid origin' }), { status: 403, headers: { 'Content-Type': 'application/json' } });
+				}
+			} catch {
+				return new Response(JSON.stringify({ error: 'CSRF: Invalid origin' }), { status: 403, headers: { 'Content-Type': 'application/json' } });
+			}
+		} else if (referer) {
+			try {
+				const refererUrl = new URL(referer);
+				if (refererUrl.hostname !== host && refererUrl.hostname !== 'localhost') {
+					return new Response(JSON.stringify({ error: 'CSRF: Invalid referer' }), { status: 403, headers: { 'Content-Type': 'application/json' } });
+				}
+			} catch {
+				return new Response(JSON.stringify({ error: 'CSRF: Invalid referer' }), { status: 403, headers: { 'Content-Type': 'application/json' } });
+			}
+		}
+		// 无 Origin 且无 Referer（如 curl 等非浏览器客户端）时放行
 		// 限流：同一 IP 5 分钟内最多 5 次失败
 		const clientIp = request.headers.get('CF-Connecting-IP') || 'unknown';
 		const rateCheck = await checkRateLimit(env, clientIp);
@@ -3041,10 +3140,12 @@ async function handleDashboardApi(request, env, ctx) {
 			const valid = await verifyTOTP(secret, totpCode);
 			if (!valid) {
 				await recordFailedAttempt(env, clientIp);
+				ctx.waitUntil(logLoginAudit(env, clientIp, '2FA 验证码错误', request.headers.get('User-Agent') || ''));
 				return new Response(JSON.stringify({ error: '2FA 验证码错误' }), { status: 401, headers: { 'Content-Type': 'application/json' } });
 			}
 			// 2FA 验证通过，创建正式 session
 			await deleteTemp2FAToken(env, tempToken);
+			ctx.waitUntil(logLoginAudit(env, clientIp, '登录成功 (2FA)', request.headers.get('User-Agent') || ''));
 			const token = await createSession(env, tempData.adminHash, true);
 			return new Response(JSON.stringify({ success: true }), {
 				headers: {
@@ -3057,6 +3158,8 @@ async function handleDashboardApi(request, env, ctx) {
 		// 第一步：验证密码
 		if (password !== expectedPassword) {
 			await recordFailedAttempt(env, clientIp);
+			// 记录登录审计日志
+			ctx.waitUntil(logLoginAudit(env, clientIp, '密码错误', request.headers.get('User-Agent') || ''));
 			return new Response(JSON.stringify({ error: '密码错误' }), { status: 401, headers: { 'Content-Type': 'application/json' } });
 		}
 
@@ -3073,6 +3176,7 @@ async function handleDashboardApi(request, env, ctx) {
 					if (valid) {
 						// TOTP 验证通过，直接创建 session
 						const token = await createSession(env, expectedHash, true);
+						ctx.waitUntil(logLoginAudit(env, clientIp, '登录成功 (2FA 一步验证)', request.headers.get('User-Agent') || ''));
 						return new Response(JSON.stringify({ success: true }), {
 							headers: {
 								'Content-Type': 'application/json',
@@ -3096,6 +3200,7 @@ async function handleDashboardApi(request, env, ctx) {
 
 		// 没有 2FA 或 2FA 未启用，直接创建 session
 		const token = await createSession(env, expectedHash);
+		ctx.waitUntil(logLoginAudit(env, clientIp, '登录成功', request.headers.get('User-Agent') || ''));
 		return new Response(JSON.stringify({ success: true }), {
 			headers: {
 				'Content-Type': 'application/json',
@@ -4260,9 +4365,11 @@ function handleKVError(request) {
 		}), { status: 500, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' } });
 	}
 
-	return new Response(html, {
+	const resp = new Response(html, {
 		headers: { 'Content-Type': 'text/html; charset=utf-8' }
 	});
+	addSecurityHeaders(resp);
+	return resp;
 }
 
 // 3. D1 Database Error UI Page
@@ -4379,9 +4486,11 @@ function handleDBError(request) {
 	</div>
 </body>
 </html>`;
-	return new Response(html, {
+	const resp2 = new Response(html, {
 		headers: { 'Content-Type': 'text/html; charset=utf-8' }
 	});
+	addSecurityHeaders(resp2);
+	return resp2;
 }
 
 // 4. Password Error UI Page
@@ -4495,7 +4604,9 @@ function handlePasswordError(request) {
 		}), { status: 500, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-api-key' } });
 	}
 
-	return new Response(html, {
+	const resp3 = new Response(html, {
 		headers: { 'Content-Type': 'text/html; charset=utf-8' }
 	});
+	addSecurityHeaders(resp3);
+	return resp3;
 }
